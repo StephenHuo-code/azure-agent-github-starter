@@ -1,0 +1,80 @@
+
+name: Build & Deploy to Azure Container Apps
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "app/**"
+      - "requirements.txt"
+      - "Dockerfile"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}  # ghcr.io/OWNER/REPO
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # for Azure OIDC login
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ghcr.io/${{ env.IMAGE_NAME }}:latest
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          containerAppName: ${{ secrets.AZURE_CONTAINERAPP_NAME }}
+          imageToDeploy: ghcr.io/${{ env.IMAGE_NAME }}:latest
+          registryUrl: ghcr.io
+          registryUsername: ${{ github.actor }}
+          registryPassword: ${{ secrets.GHCR_PAT }}
+          secrets: |
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            AZURE_OPENAI_API_KEY=${{ secrets.AZURE_OPENAI_API_KEY }}
+          environmentVariables: |
+            # Option A: Public OpenAI (needs OPENAI_API_KEY)
+            OPENAI_API_KEY=secretref:OPENAI_API_KEY
+            OPENAI_MODEL=gpt-4o-mini
+            MODEL_TEMPERATURE=0.2
+            # Option B: Azure OpenAI (key auth). Prefer Managed Identity in prod.
+            AZURE_OPENAI_API_KEY=secretref:AZURE_OPENAI_API_KEY
+            AZURE_OPENAI_ENDPOINT=${{ secrets.AZURE_OPENAI_ENDPOINT }}
+            AZURE_OPENAI_API_VERSION=2024-08-01-preview
+            AZURE_OPENAI_DEPLOYMENT=${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
+          targetPort: 8000
+          ingress: external
+          location: southeastasia
+          minReplicas: 0
+          maxReplicas: 3
