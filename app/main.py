@@ -1,10 +1,9 @@
-
 from fastapi import FastAPI
 from pydantic import BaseModel
 import uvicorn
 from app.agent import SimpleAgent
 
-app = FastAPI(title="Agent Service", version="0.1.0")
+app = FastAPI(title="Agent Service", version="1.2.0")
 agent = SimpleAgent()
 
 class ChatReq(BaseModel):
