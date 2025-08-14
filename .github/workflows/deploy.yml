@@ -60,10 +60,8 @@ jobs:
           registryUrl: ghcr.io
           registryUsername: ${{ github.actor }}
           registryPassword: ${{ secrets.GHCR_PAT }}
-          secrets: |
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           environmentVariables: |
-            OPENAI_API_KEY=secretref:OPENAI_API_KEY
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             OPENAI_MODEL=gpt-4o-mini
             MODEL_TEMPERATURE=0.2
           targetPort: 8000
