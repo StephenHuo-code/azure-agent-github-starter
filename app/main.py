@@ -2,6 +2,10 @@ import sys
 import os
 import logging
 import traceback
+from dotenv import load_dotenv
+
+# 加载 .env 文件
+load_dotenv()
 
 # 添加项目根目录到 Python 路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

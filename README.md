@@ -10,7 +10,15 @@ Configured for:
 ## Local dev
 ```bash
 pip install -r requirements.txt
+
+# 复制环境变量配置模板
+cp env.example .env
+
+# 编辑 .env 文件，设置你的配置
+# 然后设置 OpenAI API 密钥
 export OPENAI_API_KEY=...
+
+# 启动应用
 uvicorn app.main:app --reload
 ```
 
